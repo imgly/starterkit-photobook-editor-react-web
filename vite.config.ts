@@ -1,5 +1,6 @@
 import { createLogger, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { conversionAssets } from './print-conversion-assets';
 
 const logger = createLogger();
 const { warn } = logger;
@@ -17,10 +18,13 @@ export default defineConfig({
     outDir: '../../dist',
     emptyOutDir: true
   },
-  plugins: [react()],
+  plugins: [react(), conversionAssets(import.meta.url)],
   customLogger: logger,
   optimizeDeps: {
-    exclude: ['@imgly/plugin-print-ready-pdfs-web']
+    exclude: [
+      '@imgly/plugin-print-ready-pdfs-web',
+      '@imgly/pdf-conversion-utils'
+    ]
   },
   worker: {
     format: 'es'
