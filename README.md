@@ -54,7 +54,7 @@ The export server reads its key from `CESDK_LICENSE` in `.env`, which never reac
 cp .env.example .env
 ```
 
-Get a free trial license at [img.ly/forms/free-trial](https://img.ly/forms/free-trial). Without a license, the editor and the exported PDF show a watermark.
+Request a license at [img.ly/forms/contact-sales/](https://img.ly/forms/contact-sales/). Without a license, the editor and the exported PDF show a watermark.
 
 ### Run the Development Server
 
@@ -167,6 +167,10 @@ The server shows these hardening patterns but ships without TLS or authenticatio
 The port (8080) appears in `src/server/index.ts` and in the proxy in `vite.config.ts`. The server runs TypeScript through [tsx](https://tsx.is). Keep `@cesdk/node-native` on the same version as the CE.SDK packages of the web app.
 
 See [Export for Printing](https://img.ly/docs/cesdk/js/export-save-publish/for-printing-bca896/) for print export options.
+
+## Conversion Assets
+
+The Vite configuration serves the shared Ghostscript worker during development and copies `worker.browser.js`, `gs.js`, and `gs.wasm` into `dist/pdf-conversion/` for production. Deploy the complete `dist/` directory, including those assets and the emitted ICC profiles. When hosting under a subdirectory, set Vite's `base` to that deployment path before building; PDF/X conversion uses the same base.
 
 ## Key Capabilities
 

@@ -49,7 +49,12 @@ async function convertInWorker(pdf: Blob, signal?: AbortSignal): Promise<Blob> {
       signal?.addEventListener('abort', () => reject(signal.reason));
       worker.postMessage({
         pdf,
-        options: PDFX_OPTIONS
+        options: PDFX_OPTIONS,
+        // Relative Vite bases belong to the document, not the worker's assets directory.
+        assetBaseURL: new URL(
+          `${import.meta.env.BASE_URL}pdf-conversion/`,
+          document.baseURI
+        ).href
       } satisfies ConvertRequest);
     });
   } finally {
