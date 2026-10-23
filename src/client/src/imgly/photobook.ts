@@ -34,12 +34,35 @@ const STYLE_SCENES: Record<LayoutFormat, Record<PhotobookStyleId, string>> = {
   square: {
     playful: 'style-playful-square.imgly',
     chic: 'style-chic-square.imgly'
+  },
+  a4: {
+    playful: 'style-playful-a4.imgly',
+    chic: 'style-chic-a4.imgly'
   }
 };
 
-/** Layouts are authored per page format, so the size decides the format. */
+/** The page size each layout format is authored at, in millimeters. */
+const FORMAT_SIZES: Record<LayoutFormat, PhotobookSize> = {
+  portrait: { width: 220, height: 286 },
+  square: { width: 250, height: 250 },
+  a4: { width: 210, height: 297 }
+};
+
+/**
+ * Layouts are authored per page format, so the size decides the format: the
+ * one whose aspect ratio is closest. Portrait and A4 differ only in ratio.
+ */
 export function getLayoutFormat(size: PhotobookSize): LayoutFormat {
-  return size.height > size.width ? 'portrait' : 'square';
+  const distance = (format: LayoutFormat) => {
+    const authored = FORMAT_SIZES[format];
+    return Math.abs(
+      Math.log(size.width / size.height / (authored.width / authored.height))
+    );
+  };
+  const formats = Object.keys(FORMAT_SIZES) as LayoutFormat[];
+  return formats.reduce((best, format) =>
+    distance(format) < distance(best) ? format : best
+  );
 }
 
 /** The scene URL a size and style start from. */
