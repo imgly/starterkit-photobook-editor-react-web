@@ -31,7 +31,7 @@ import {
 const TEXT_TYPE = '//ly.img.ubq/text';
 
 /** The page format a layout set is authored for. */
-export type LayoutFormat = 'square' | 'portrait';
+export type LayoutFormat = 'square' | 'portrait' | 'a4';
 
 /**
  * Where the layout scenes and thumbnails load from.

@@ -10,6 +10,7 @@ import type {
   PhotobookSize,
   PhotobookStyleId
 } from '../imgly';
+import sizeA4Icon from './icons/size-a4.png';
 import sizePortraitIcon from './icons/size-portrait.png';
 import sizeSquareIcon from './icons/size-square.png';
 import styleChicThumb from './icons/style-chic.png';
@@ -56,6 +57,14 @@ export const SIZE_OPTIONS: SizeOption[] = [
     width: 250,
     height: 250,
     icon: sizeSquareIcon
+  },
+  {
+    id: 'a4',
+    label: 'A4',
+    dimensionsLabel: '21 × 29,7 cm',
+    width: 210,
+    height: 297,
+    icon: sizeA4Icon
   }
 ];
 
