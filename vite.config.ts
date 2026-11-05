@@ -1,6 +1,6 @@
 import { createLogger, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { conversionAssets } from './print-conversion-assets';
+import { conversionAssets } from './print-conversion-assets.mjs';
 
 const logger = createLogger();
 const { warn } = logger;

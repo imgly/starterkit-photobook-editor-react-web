@@ -38,6 +38,10 @@ const STYLE_SCENES: Record<LayoutFormat, Record<PhotobookStyleId, string>> = {
   a4: {
     playful: 'style-playful-a4.imgly',
     chic: 'style-chic-a4.imgly'
+  },
+  'a4-landscape': {
+    playful: 'style-playful-a4-landscape.imgly',
+    chic: 'style-chic-a4-landscape.imgly'
   }
 };
 
@@ -45,7 +49,8 @@ const STYLE_SCENES: Record<LayoutFormat, Record<PhotobookStyleId, string>> = {
 const FORMAT_SIZES: Record<LayoutFormat, PhotobookSize> = {
   portrait: { width: 220, height: 286 },
   square: { width: 250, height: 250 },
-  a4: { width: 210, height: 297 }
+  a4: { width: 210, height: 297 },
+  'a4-landscape': { width: 297, height: 210 }
 };
 
 /**
