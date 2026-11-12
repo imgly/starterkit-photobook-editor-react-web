@@ -69,9 +69,6 @@ export function setupSettings(engine: CreativeEngine): void {
   // it. The slots are placed by the layout, so moving one is not an edit the
   // reader can make.
   engine.editor.setSettingFloat('dragToSwapFills/longPressDurationMs', 125);
-
-  // Generate source sets automatically for image fills
-  engine.editor.setSetting('features/automaticSourceSetsEnabled', true);
   // #endregion
 
   // ============================================================================
