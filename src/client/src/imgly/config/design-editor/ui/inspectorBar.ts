@@ -59,6 +59,7 @@
  *
  * **Page:**
  * - `'ly.img.pageResize.inspectorBar'` - Page resize button
+ * - `'ly.img.spread.inspectorBar'` - Spread Layout and Append Page of a selected spread
  *
  * **Special Controls:**
  * - `'ly.img.placeholder.inspectorBar'` - Open placeholder settings
@@ -102,7 +103,8 @@ export function setupInspectorBar(cesdk: CreativeEditorSDK): void {
       // Page Resize
       // ============================
       // 'ly.img.pageResize.inspectorBar',
-      // 'ly.img.separator',
+      'ly.img.spread.inspectorBar',
+      'ly.img.separator',
 
       // ============================
       // Media Controls

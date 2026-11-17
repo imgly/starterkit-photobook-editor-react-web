@@ -67,7 +67,8 @@ function getBlockDisplayName(
     case 'image':
       return 'Image';
     case 'page':
-      return 'Page';
+      // The book's pages carry no names, so the number tells them apart.
+      return cesdk.utils.generateBlockName(blockId);
     case 'sticker':
       return 'Sticker';
     case 'shapes':

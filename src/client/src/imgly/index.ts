@@ -6,22 +6,8 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
-import {
-  BlurAssetSource,
-  ImageColorsAssetSource,
-  ColorPaletteAssetSource,
-  EffectsAssetSource,
-  FiltersAssetSource,
-  StickerAssetSource,
-  TextAssetSource,
-  TextComponentAssetSource,
-  TypefaceAssetSource,
-  UploadAssetSources,
-  VectorShapeAssetSource
-} from '@cesdk/cesdk-js/plugins';
-
-import { DesignEditorConfig } from './config/plugin';
-import { allowPageSelection } from './page-selection';
+import { rememberBookScopes } from './add-spread';
+import { configurePhotobookEditor } from './editor';
 import { stampDefaultTexts } from './placeholders';
 import { openPhotosPanel } from './constants';
 import { LayoutsAssetSourcePlugin } from './plugins/layouts/layout';
@@ -32,7 +18,9 @@ import {
   type PhotobookSize
 } from './photobook';
 
-export { DesignEditorConfig } from './config/plugin';
+export { DesignEditorConfig } from './config/design-editor/plugin';
+export { PhotobookPreviewConfig } from './config/preview/plugin';
+export { configurePhotobookEditor } from './editor';
 export {
   UPLOAD_SOURCE_ID,
   addPhotosToUploadSource,
@@ -41,7 +29,7 @@ export {
 export type { PhotoRef, RemotePhotoAsset } from './photos';
 export { autoFillPhotobook, autoFillPhotobookTexts } from './autofill';
 export type { PhotobookTextContent } from './autofill';
-export { enterPreviewMode } from './preview-mode';
+export { enterPreviewMode, type PreviewModeOptions } from './preview-mode';
 export { LAYOUTS_SOURCE_ID } from './constants';
 export { LayoutsAssetSourcePlugin } from './plugins/layouts/layout';
 export {
@@ -70,45 +58,20 @@ export async function initPhotobookEditor(
   sceneURL: string,
   size: PhotobookSize
 ) {
-  await cesdk.addPlugin(new DesignEditorConfig());
-
-  await Promise.all([
-    cesdk.addPlugin(new BlurAssetSource()),
-    cesdk.addPlugin(new ImageColorsAssetSource()),
-    cesdk.addPlugin(new ColorPaletteAssetSource()),
-    cesdk.addPlugin(
-      new UploadAssetSources({
-        include: ['ly.img.image.upload']
-      })
-    ),
-    cesdk.addPlugin(new EffectsAssetSource()),
-    cesdk.addPlugin(new FiltersAssetSource()),
-    cesdk.addPlugin(new StickerAssetSource()),
-    cesdk.addPlugin(new TextAssetSource()),
-    cesdk.addPlugin(new TextComponentAssetSource()),
-    cesdk.addPlugin(new VectorShapeAssetSource()),
-    cesdk.addPlugin(new TypefaceAssetSource())
-  ]);
+  await configurePhotobookEditor(cesdk);
 
   await cesdk.load(sceneURL);
 
   setPageDimensions(cesdk.engine, size);
 
-  // The reader fills a book rather than authoring one, so the editor runs as
-  // an adopter: page structure and layouts stay fixed, slots stay editable.
-  cesdk.engine.editor.setRole('Adopter');
-
-  // The role defers selection to each block, whose default denies it, so pages
-  // are granted it explicitly. Selecting a page is what lets the Pages panel
-  // follow a row to the canvas.
-  allowPageSelection(cesdk.engine);
+  // A spread the reader adds takes the permissions the style scene gives the
+  // book's own spreads and pages.
+  rememberBookScopes(cesdk.engine);
 
   // Text blocks remember their template text, so validation can tell
   // placeholder text from user content.
   stampDefaultTexts(cesdk.engine);
 
-  // Layouts are authored per page format, so the loaded cover decides which
-  // set the book is offered.
   await cesdk.addPlugin(
     new LayoutsAssetSourcePlugin(
       getSceneLayoutFormat(cesdk.engine),

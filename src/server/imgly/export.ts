@@ -1,8 +1,8 @@
 /**
  * CE.SDK Photobook Server - Export Pipeline
  *
- * Renders an uploaded scene archive to PDF with the `@cesdk/node-native`
- * engine. The client converts that PDF to PDF/X-4. Exports run one at a time per process: the
+ * Renders an uploaded scene archive to PDF with the native engine of
+ * `@cesdk/node`. The client converts that PDF to PDF/X-4. Exports run one at a time per process: the
  * engine holds a single scene, so requests queue on a promise chain. A
  * bounded timeout keeps one wedged export from blocking the chain forever.
  */
@@ -12,12 +12,13 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import type CreativeEngineNative from '@cesdk/node-native';
+import type CreativeEngineNode from '@cesdk/node';
+import type { ExportOptions } from '@cesdk/node';
 
-import { PREVIEW_BLANK_PAGE_NAME } from '../../client/src/imgly/constants.ts';
+import { removeBlanksForPrint } from '../../client/src/imgly/spread-export.ts';
 import { type ExportJobPhase } from '../../shared/export-api.ts';
 
-type CreativeEngine = Awaited<ReturnType<typeof CreativeEngineNative.init>>;
+type CreativeEngine = Awaited<ReturnType<typeof CreativeEngineNode.init>>;
 
 /** Hard wall-clock bound per export, conversion included. */
 const EXPORT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -38,9 +39,12 @@ export function isExportWedged(): boolean {
 /** The engine is initialized on the first export and then kept warm. */
 async function getEngine(): Promise<CreativeEngine> {
   if (engine != null) return engine;
-  const { default: CreativeEngine } = await import('@cesdk/node-native');
+  const { default: CreativeEngine } = await import('@cesdk/node');
   engine = await CreativeEngine.init({
-    license: process.env.CESDK_LICENSE ?? ''
+    license: process.env.CESDK_LICENSE ?? '',
+    // A large book runs out of memory on the WASM engine, so the export fails
+    // instead of starting it where the native engine cannot run.
+    engine: 'native'
   });
   // Click-through decodes every image to build its hit test; a headless
   // exporter takes no clicks, so that is pure export time.
@@ -57,9 +61,9 @@ async function getEngine(): Promise<CreativeEngine> {
  *
  * @param getArchive - Returns the uploaded archive, or null once the job
  *   was cancelled and released its buffer
- * @param signal - Aborts an export that is queued or still preparing. A render
- *   already handed to the engine runs to completion, because
- *   `@cesdk/node-native` takes no abort signal; the timeout bounds it instead.
+ * @param signal - Aborts an export that is queued or still preparing. The kit
+ *   passes no abort signal to the engine, so a render already handed to it
+ *   runs to completion; the timeout bounds it instead.
  * @returns The finished PDF
  */
 export function exportArchive(
@@ -176,21 +180,14 @@ async function runExport(
     // current spread is visible — a hidden page is left out of the PDF.
     // The bleed is off while editing and belongs in the print file.
     jobEngine.scene.getPages().forEach((page) => {
-      // An archive uploaded from preview carries its blank stand-in pages,
-      // which belong to no book.
-      if (jobEngine.block.getName(page) === PREVIEW_BLANK_PAGE_NAME) {
-        jobEngine.block.destroy(page);
-        return;
-      }
       jobEngine.block.setVisible(page, true);
       jobEngine.block.setBool(page, 'page/marginEnabled', true);
     });
+    removeBlanksForPrint(jobEngine);
 
     onPhase('exporting');
-    // `@cesdk/node-native` cannot cancel a running export, so the render is
-    // bounded by the timeout above rather than by the request's signal. The
-    // crop and registration marks reach the PDF from 1.83.0 on; 1.82.0 drops
-    // them, so the options pass through a cast until the pin moves.
+    // The render gets no abort signal, so it is bounded by the timeout
+    // above rather than by the request's signal.
     // High compatibility rasterizes every photo at scene DPI; off, baseline
     // JPEGs are embedded as-is, so the PDF stays small enough for the
     // PDF/X conversion.
@@ -200,6 +197,7 @@ async function runExport(
       mimeType: 'application/pdf',
       exportPdfWithHighCompatibility: false,
       exportPdfWithCropMarks: true,
+      exportPdfWithFoldMarks: true,
       exportPdfWithRegistrationMarks: true,
       onProgress: (exportedPages: number, totalPages: number) => {
         const percent = Math.round((exportedPages / totalPages) * 100);
@@ -209,7 +207,7 @@ async function runExport(
           `  rendering ${exportedPages}/${totalPages} pages (${percent}%)`
         );
       }
-    } as unknown as Parameters<typeof jobEngine.block.export>[1];
+    } satisfies ExportOptions;
     const exportStart = Date.now();
     const pdf = await jobEngine.block.export(scene, exportOptions);
     failOnBlocked(blockedURIs);
