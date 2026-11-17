@@ -20,7 +20,7 @@ release/public/
 release/index.html
 release/README.md
 release/.env.example
-release/.eslintrc.cjs
+release/.eslintrc.js
 release/LICENSE
 release/hero.webp
 
