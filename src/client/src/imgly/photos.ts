@@ -12,6 +12,39 @@ type CreativeEngine = CreativeEditorSDK['engine'];
 
 export const UPLOAD_SOURCE_ID = 'ly.img.image.upload';
 
+/** The image formats a reader may upload. */
+const PHOTO_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/svg+xml',
+  'image/bmp',
+  'image/gif',
+  'image/apng'
+];
+
+/** The asset library entries that list the reader's photos. */
+const PHOTO_LIBRARY_ENTRIES = ['ly.img.image', 'ly.img.upload'];
+
+/**
+ * Adds the source that holds the reader's photos, and lists it in the photo
+ * libraries. The kit owns the source, so the photos stay when the editor
+ * switches to the preview and back.
+ */
+export function addPhotoSource(cesdk: CreativeEditorSDK): void {
+  const { engine } = cesdk;
+  if (!engine.asset.findAllSources().includes(UPLOAD_SOURCE_ID)) {
+    engine.asset.addLocalSource(UPLOAD_SOURCE_ID, PHOTO_MIME_TYPES);
+  }
+  PHOTO_LIBRARY_ENTRIES.forEach((entry) => {
+    cesdk.ui.updateAssetLibraryEntry(entry, {
+      sourceIds: ({ currentIds }) => [
+        ...new Set([...currentIds, UPLOAD_SOURCE_ID])
+      ]
+    });
+  });
+}
+
 /** A remote photo with known pixel dimensions. */
 export interface RemotePhotoAsset {
   id: string;
@@ -94,8 +127,8 @@ export function revokeUploadedPhotoURLs(): void {
 /**
  * Adds photos to the `ly.img.image.upload` source.
  *
- * Call after the UploadAssetSources plugin has registered the source, so the
- * photos are available the moment the editor shows.
+ * Call after `addPhotoSource`, so the photos are available the moment the
+ * editor shows.
  *
  * @param engine - The engine whose upload source to fill
  * @param remotePhotos - Remote photos with known dimensions
@@ -108,11 +141,11 @@ export async function addPhotosToUploadSource(
   files: File[]
 ): Promise<PhotoRef[]> {
   const remoteAvailable =
-    remotePhotos.length > 0 && (await isReachable(remotePhotos[0].uri));
+    remotePhotos.length > 0 && (await isReachable(remotePhotos[0]!.uri));
   const availableRemotePhotos = remoteAvailable ? remotePhotos : [];
   if (!remoteAvailable && remotePhotos.length > 0) {
     console.warn(
-      `Remote photos are not reachable at ${remotePhotos[0].uri}; continuing without them.`
+      `Remote photos are not reachable at ${remotePhotos[0]!.uri}; continuing without them.`
     );
   }
 

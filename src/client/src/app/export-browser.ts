@@ -6,7 +6,7 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
-import { PREVIEW_BLANK_PAGE_NAME } from '../imgly/constants';
+import { removeBlanksForPrint } from '../imgly/spread-export';
 import { toPrintReadyPDF } from './print-ready-pdf';
 
 /**
@@ -53,15 +53,10 @@ export async function exportPhotobookInBrowser(
     // The bleed is off while editing, so it is turned back on here: this
     // engine renders a snapshot, so the book on screen is untouched.
     exportEngine.scene.getPages().forEach((page) => {
-      // A snapshot taken in preview carries its blank stand-in pages, which
-      // belong to no book.
-      if (exportEngine.block.getName(page) === PREVIEW_BLANK_PAGE_NAME) {
-        exportEngine.block.destroy(page);
-        return;
-      }
       exportEngine.block.setVisible(page, true);
       exportEngine.block.setBool(page, 'page/marginEnabled', true);
     });
+    removeBlanksForPrint(exportEngine);
 
     // High compatibility rasterizes every photo at scene DPI; off, baseline
     // JPEGs are embedded as-is, so the PDF stays small enough for the
@@ -69,9 +64,10 @@ export async function exportPhotobookInBrowser(
     const exportOptions = {
       mimeType: 'application/pdf' as const,
       exportPdfWithHighCompatibility: false,
-      // A print shop cuts and aligns by these. They sit outside the bleed,
-      // so the PDF page grows around the unchanged trim and bleed boxes.
+      // A print shop cuts, folds and aligns by these. They sit outside the
+      // bleed, so the PDF page grows around the unchanged trim and bleed boxes.
       exportPdfWithCropMarks: true,
+      exportPdfWithFoldMarks: true,
       exportPdfWithRegistrationMarks: true,
       abortSignal: signal,
       onProgress

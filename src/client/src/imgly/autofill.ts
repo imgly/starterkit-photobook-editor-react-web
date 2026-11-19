@@ -10,7 +10,7 @@
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import type { PhotoRef } from './photos';
-import { getChildrenTree, visuallySortBlocks } from './block-utils';
+import { visuallySortBlocks } from './block-utils';
 import {
   CAPTION_DEFAULTS,
   getDefaultText,
@@ -18,18 +18,19 @@ import {
   isUnfilledImageSlot,
   setPhotoFill
 } from './placeholders';
+import { getBookPages, getBookPageTree, type BookPage } from './spreads';
 
 type CreativeEngine = CreativeEditorSDK['engine'];
 
 /**
- * Returns a page's placeholder image slots, sorted top to bottom and left
- * to right.
+ * Returns the placeholder image slots of a page of the book, sorted top to
+ * bottom and left to right.
  */
 function getPlaceholderImageSlots(
   engine: CreativeEngine,
-  page: number
+  bookPage: BookPage
 ): number[] {
-  return visuallySortBlocks(engine, getChildrenTree(engine, page)).filter(
+  return visuallySortBlocks(engine, getBookPageTree(engine, bookPage)).filter(
     (block) => isUnfilledImageSlot(engine, block)
   );
 }
@@ -55,12 +56,12 @@ function matchPhotosToSlots(
 ): { slot: number; photo: PhotoRef }[] {
   const ranked = slots.map((slot, index) => ({
     slot,
-    photo: photos[index],
+    photo: photos[index]!,
     slotRatio: logAspectRatio(
       engine.block.getFrameWidth(slot),
       engine.block.getFrameHeight(slot)
     ),
-    photoRatio: logAspectRatio(photos[index].width, photos[index].height)
+    photoRatio: logAspectRatio(photos[index]!.width, photos[index]!.height)
   }));
   const measurable = ranked.every(
     ({ slotRatio, photoRatio }) =>
@@ -72,7 +73,7 @@ function matchPhotosToSlots(
   const photoOrder = [...ranked].sort((a, b) => a.photoRatio - b.photoRatio);
   return slotOrder.map(({ slot }, index) => ({
     slot,
-    photo: photoOrder[index].photo
+    photo: photoOrder[index]!.photo
   }));
 }
 
@@ -93,13 +94,13 @@ export function autoFillPhotobook(
   if (photos.length === 0) return;
 
   let photoIndex = 0;
-  engine.scene.getPages().forEach((page) => {
+  getBookPages(engine).forEach((bookPage) => {
     if (photoIndex >= photos.length) return;
-    const slots = getPlaceholderImageSlots(engine, page).slice(
+    const slots = getPlaceholderImageSlots(engine, bookPage).slice(
       0,
       photos.length - photoIndex
     );
-    const pagePhotos = slots.map(() => photos[photoIndex++]);
+    const pagePhotos = slots.map(() => photos[photoIndex++]!);
     matchPhotosToSlots(engine, slots, pagePhotos).forEach(({ slot, photo }) => {
       setPhotoFill(engine, slot, {
         imageFileURI: photo.uri,
@@ -116,12 +117,12 @@ export interface PhotobookTextContent {
   captions: string[];
 }
 
-/** Returns a page's placeholder captions, sorted top to bottom. */
+/** Returns the placeholder captions of a page of the book, top to bottom. */
 function getPlaceholderCaptions(
   engine: CreativeEngine,
-  page: number
+  bookPage: BookPage
 ): number[] {
-  return visuallySortBlocks(engine, getChildrenTree(engine, page)).filter(
+  return visuallySortBlocks(engine, getBookPageTree(engine, bookPage)).filter(
     (block) => {
       if (engine.block.getType(block) !== TEXT_TYPE) return false;
       const defaultText = getDefaultText(engine, block);
@@ -150,9 +151,9 @@ export function autoFillPhotobookTexts(
   if (texts.captions.length === 0) return;
 
   let captionIndex = 0;
-  engine.scene.getPages().forEach((page) => {
-    getPlaceholderCaptions(engine, page).forEach((block) => {
-      const value = texts.captions[captionIndex++ % texts.captions.length];
+  getBookPages(engine).forEach((bookPage) => {
+    getPlaceholderCaptions(engine, bookPage).forEach((block) => {
+      const value = texts.captions[captionIndex++ % texts.captions.length]!;
       engine.block.setString(block, 'text/text', value);
     });
   });

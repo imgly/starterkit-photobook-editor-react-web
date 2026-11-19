@@ -92,7 +92,7 @@ The detectors live in `src/client/src/imgly/validation.ts`. Check names and desc
 
 ### Editor Configuration
 
-The `src/client/src/imgly/config/` directory holds the dock, navigation bar, canvas menu, features, and settings. Set your own analytics identifier in `userId` in `src/client/src/index.tsx`.
+The `src/client/src/imgly/config/design-editor/` directory holds the dock, navigation bar, canvas menu, features, and settings of the editor. `src/client/src/imgly/config/preview/` holds the preview's. Set your own analytics identifier in `userId` in `src/client/src/index.tsx`.
 
 ### Theming
 
@@ -131,12 +131,17 @@ starterkit-photobook-editor-react-web/
 │   │       │   └── print-ready-pdf.ts # PDF/X-4 conversion
 │   │       └── imgly/            # Reusable editor logic
 │   │           ├── index.ts          # Editor initialization
-│   │           ├── config/           # Actions, features, settings, i18n, UI
+│   │           ├── editor.ts         # The editor configuration and its assets
+│   │           ├── config/
+│   │           │   ├── design-editor/ # Actions, features, settings, i18n, UI
+│   │           │   └── preview/      # The preview configuration
 │   │           ├── plugins/layouts/  # Layouts library
 │   │           ├── autofill.ts       # Photo auto-fill
-│   │           ├── preview-mode.ts   # Page-spread preview
+│   │           ├── add-spread.ts     # Add Page: a spread at the end of the book
+│   │           ├── preview-mode.ts   # Switches to the preview and back
+│   │           ├── spreads.ts        # The book as page spreads
 │   │           └── validation.ts     # Design validation
-│   ├── server/                   # Export server (Express + @cesdk/node-native)
+│   ├── server/                   # Export server (Express + @cesdk/node)
 │   │   ├── index.ts              # Server entry point
 │   │   ├── imgly/                # Engine lifecycle, export pipeline, timeout
 │   │   ├── jobs/                 # Job store, rate windows, expiry
@@ -147,13 +152,13 @@ starterkit-photobook-editor-react-web/
 └── vite.config.ts
 ```
 
-The app is a `start | editor | preview` state machine (`src/client/src/app/App.tsx`). The editor stays mounted across `editor` and `preview`. The preview is a mode of the editor (`src/client/src/imgly/preview-mode.ts`) that switches the scene into page spreads and swaps the editor chrome. It is not a separate screen.
+The app is a `start | editor | preview` state machine (`src/client/src/app/App.tsx`). The editor stays mounted across `editor` and `preview`. The editor shows the book as page spreads (`src/client/src/imgly/spreads.ts`): the jacket is one spread of back cover, spine and front cover, and each inside spread holds two facing pages. The style scenes are saved as spreads, so the kit opens them as they are. The preview is an editor configuration of its own (`src/client/src/imgly/config/preview/`): `src/client/src/imgly/preview-mode.ts` switches the editor to it, shows one spread at a time, and switches back to the design editor when the reader leaves.
 
 ## Export Server
 
-"Export as PDF" renders in the browser, or on the export server when `VITE_USE_SERVER=true`. Either way, the browser converts the PDF to PDF/X-4 (FOGRA39) with `@imgly/plugin-print-ready-pdfs-web`.
+"Export as PDF" renders in the browser, or on the export server when `VITE_USE_SERVER=true`. Either way, the browser converts the PDF to PDF/X-4 (FOGRA39) with `@imgly/plugin-print-ready-pdfs-web`. The PDF has one page for each spread, so the inside pages print two at a time.
 
-With the server, the client uploads the scene archive to `POST /api/export`, polls `GET /api/export/:id`, and downloads the rendered PDF from `GET /api/export/:id/file`. The server renders with the GPU-accelerated `@cesdk/node-native` engine, which keeps a large book off the browser's main thread.
+With the server, the client uploads the scene archive to `POST /api/export`, polls `GET /api/export/:id`, and downloads the rendered PDF from `GET /api/export/:id/file`. The server renders with the GPU-accelerated native engine of `@cesdk/node`, which keeps a large book off the browser's main thread.
 
 The server enforces these limits (see `src/server/http/routes.ts` and `src/server/jobs/store.ts`):
 
@@ -164,7 +169,7 @@ The server enforces these limits (see `src/server/http/routes.ts` and `src/serve
 
 The server shows these hardening patterns but ships without TLS or authentication. Put a real gateway in front of it before you expose it.
 
-The port (8080) appears in `src/server/index.ts` and in the proxy in `vite.config.ts`. The server runs TypeScript through [tsx](https://tsx.is). Keep `@cesdk/node-native` on the same version as the CE.SDK packages of the web app.
+The port (8080) appears in `src/server/index.ts` and in the proxy in `vite.config.ts`. The server runs TypeScript through [tsx](https://tsx.is). Keep `@cesdk/node` on the same version as the CE.SDK packages of the web app.
 
 See [Export for Printing](https://img.ly/docs/cesdk/js/export-save-publish/for-printing-bca896/) for print export options.
 
