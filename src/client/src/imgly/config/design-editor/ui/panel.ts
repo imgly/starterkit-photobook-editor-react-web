@@ -51,4 +51,20 @@ export function setupPanels(cesdk: CreativeEditorSDK): void {
   // Floating: true (float over canvas) | false (push canvas)
   cesdk.ui.setPanelFloating('//ly.img.panel/assets', false);
   // #endregion
+
+  // ============================================================================
+  // LAYER LIST ROW MENU
+  // An empty order hides the ellipsis menu on every row
+  // ============================================================================
+
+  // #region Layer List Row Menu
+  cesdk.ui.setComponentOrder(
+    { in: 'ly.img.layerList.menu', when: { rowKind: 'layer' } },
+    []
+  );
+  cesdk.ui.setComponentOrder(
+    { in: 'ly.img.layerList.menu', when: { rowKind: 'page' } },
+    []
+  );
+  // #endregion
 }

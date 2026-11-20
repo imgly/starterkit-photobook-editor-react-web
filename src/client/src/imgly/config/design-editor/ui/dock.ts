@@ -22,9 +22,10 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import {
   LAYOUTS_ICON,
+  LAYOUTS_PANEL_ID,
   LAYOUTS_SOURCE_ID,
   PHOTOS_LIBRARY_ENTRY
-} from '../../constants';
+} from '../../../constants';
 
 /**
  * The Pages dock icon. `@imgly/BookOpen` ships in the icon package's
@@ -60,6 +61,7 @@ function openLibrary(
     return;
   }
   cesdk.ui.closePanel(PAGES_PANEL_ID);
+  cesdk.ui.closePanel(LAYOUTS_PANEL_ID);
   cesdk.ui.openPanel(ASSET_LIBRARY_PANEL_ID, { payload });
 }
 
@@ -68,8 +70,8 @@ function openLibrary(
 function registerPagesDock(cesdk: CreativeEditorSDK): void {
   cesdk.ui.registerComponent(
     'photobook.pages.dock',
-    ({ builder: { Button }, engine }) => {
-      if (!cesdk.feature.isEnabled('ly.img.layerList.panel', { engine }))
+    ({ builder: { Button } }) => {
+      if (cesdk.features.evaluate('ly.img.layerList').status !== 'available')
         return;
       const isOpen = cesdk.ui.isPanelOpen(PAGES_PANEL_ID);
       Button('photobook.pages.dock', {
@@ -84,7 +86,35 @@ function registerPagesDock(cesdk: CreativeEditorSDK): void {
           // The asset libraries share one panel and replace each other, so
           // this one closes them to take the same slot.
           cesdk.ui.closePanel(ASSET_LIBRARY_PANEL_ID);
+          cesdk.ui.closePanel(LAYOUTS_PANEL_ID);
           cesdk.ui.openPanel(PAGES_PANEL_ID);
+        }
+      });
+    }
+  );
+}
+
+/**
+ * The layouts live in the kit's own panel, which switches between the single
+ * page and the spread layouts, so they get a dock button of their own.
+ */
+function registerLayoutsDock(cesdk: CreativeEditorSDK): void {
+  cesdk.ui.registerComponent(
+    'photobook.layouts.dock',
+    ({ builder: { Button } }) => {
+      const isOpen = cesdk.ui.isPanelOpen(LAYOUTS_PANEL_ID);
+      Button('photobook.layouts.dock', {
+        label: `libraries.${LAYOUTS_SOURCE_ID}.label`,
+        icon: LAYOUTS_ICON,
+        isSelected: isOpen,
+        onClick: () => {
+          if (isOpen) {
+            cesdk.ui.closePanel(LAYOUTS_PANEL_ID);
+            return;
+          }
+          cesdk.ui.closePanel(ASSET_LIBRARY_PANEL_ID);
+          cesdk.ui.closePanel(PAGES_PANEL_ID);
+          cesdk.ui.openPanel(LAYOUTS_PANEL_ID);
         }
       });
     }
@@ -99,6 +129,7 @@ function registerPagesDock(cesdk: CreativeEditorSDK): void {
 export function setupDock(cesdk: CreativeEditorSDK): void {
   cesdk.ui.addIconSet('@photobook', PHOTOBOOK_ICON_SET);
   registerPagesDock(cesdk);
+  registerLayoutsDock(cesdk);
 
   // ============================================================================
   // DOCK APPEARANCE SETTINGS
@@ -106,11 +137,14 @@ export function setupDock(cesdk: CreativeEditorSDK): void {
   // ============================================================================
 
   // #region Dock Appearance
-  // Show text labels under dock icons
-  cesdk.engine.editor.setSetting('dock/hideLabels', false);
-
-  // Icon size: 'normal' or 'large'
-  cesdk.engine.editor.setSetting('dock/iconSize', 'normal');
+  cesdk.features.configure({
+    'ly.img.dock': {
+      // Show text labels under dock icons
+      hideLabels: false,
+      // Icon size: 'normal' or 'large'
+      iconSize: 'normal'
+    }
+  });
   // #endregion
 
   // ============================================================================
@@ -138,19 +172,7 @@ export function setupDock(cesdk: CreativeEditorSDK): void {
       entries: [PHOTOS_LIBRARY_ENTRY]
     },
 
-    {
-      id: 'ly.img.assetLibrary.dock',
-      key: LAYOUTS_SOURCE_ID,
-      icon: LAYOUTS_ICON,
-      label: `libraries.${LAYOUTS_SOURCE_ID}.label`,
-      onClick: () =>
-        openLibrary(
-          cesdk,
-          [LAYOUTS_SOURCE_ID],
-          `libraries.${LAYOUTS_SOURCE_ID}.label`
-        ),
-      entries: [LAYOUTS_SOURCE_ID]
-    },
+    'photobook.layouts.dock',
 
     'ly.img.spacer'
   ]);

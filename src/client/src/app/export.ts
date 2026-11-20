@@ -13,7 +13,7 @@ import type { ExportJobStatusResponse } from '../../../shared/export-api';
 
 /**
  * Whether exports go through the export server. Set `VITE_USE_SERVER=true`
- * to render with `@cesdk/node-native`; anything else renders in the browser.
+ * to render with `@cesdk/node`; anything else renders in the browser.
  *
  * Routing is explicit rather than probed, so a server that is configured but
  * unreachable fails with an error instead of quietly exporting in the

@@ -23,11 +23,13 @@ import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import {
   LAYOUTS_ICON,
-  LAYOUTS_PANEL_PAYLOAD,
+  LAYOUTS_PANEL_ID,
   LAYOUTS_SOURCE_ID,
+  PAGE_SLICE_TYPE,
   PAGE_TYPE,
   openLayoutsPanel
-} from '../../constants';
+} from '../../../constants';
+import { takesLayout } from '../../../spreads';
 
 /**
  * Configure the canvas bar and context menu.
@@ -40,18 +42,22 @@ export function setupCanvas(cesdk: CreativeEditorSDK): void {
   // ============================================================================
 
   // #region Page Layouts Toggle
-  // A canvas menu button for pages that toggles the layouts panel.
+  // A canvas menu button for spreads and their pages that toggles the layouts panel.
   cesdk.ui.registerComponent(
     'photobook.page.layouts.canvasMenu',
     ({ builder, engine }) => {
       const [selected] = engine.block.findAllSelected();
       if (selected == null) return;
-      if (engine.block.getType(selected) !== PAGE_TYPE) return;
+      const type = engine.block.getType(selected);
+      if (type !== PAGE_TYPE && type !== PAGE_SLICE_TYPE) return;
+      // The jacket takes no layout; a spread offers one while any of its pages takes it.
+      const takers =
+        type === PAGE_TYPE
+          ? [selected, ...engine.block.getPageSlices(selected)]
+          : [selected];
+      if (!takers.some((block) => takesLayout(engine, block))) return;
 
-      const isOpen = cesdk.ui.isPanelOpen(
-        '//ly.img.panel/assetLibrary',
-        LAYOUTS_PANEL_PAYLOAD
-      );
+      const isOpen = cesdk.ui.isPanelOpen(LAYOUTS_PANEL_ID);
       builder.Button('photobook-page-layouts', {
         label: `libraries.${LAYOUTS_SOURCE_ID}.label`,
         icon: LAYOUTS_ICON,
@@ -59,7 +65,7 @@ export function setupCanvas(cesdk: CreativeEditorSDK): void {
         isActive: isOpen,
         onClick: () => {
           if (isOpen) {
-            cesdk.ui.closePanel('//ly.img.panel/assetLibrary');
+            cesdk.ui.closePanel(LAYOUTS_PANEL_ID);
           } else {
             openLayoutsPanel(cesdk);
           }

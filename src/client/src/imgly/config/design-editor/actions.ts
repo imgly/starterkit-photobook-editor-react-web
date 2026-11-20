@@ -40,13 +40,7 @@
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 import type { Scope } from '@cesdk/engine';
 
-const ADDED_PAGE_GRANTS: Scope[] = [
-  'editor/select',
-  'lifecycle/destroy',
-  'lifecycle/duplicate'
-];
-
-const ADDED_PAGE_DENIALS: Scope[] = ['stroke/change', 'fill/change'];
+import { addBookSpread } from '../../add-spread';
 
 // The scopes a duplicate must carry over.
 const DUPLICATED_SCOPES: Scope[] = [
@@ -166,27 +160,23 @@ export function setupActions(cesdk: CreativeEditorSDK): void {
   // #region Upload File Action
   // Handle local file uploads by creating blob URLs
   // This integrates with CE.SDK's upload asset sources
-  cesdk.actions.register('uploadFile', (file, onProgress, context) => {
+  cesdk.actions.register('uploadFile', (file, _onProgress, context) => {
     return cesdk.utils.localUpload(file, context);
   });
   // #endregion
 
   // #region Add Page Action
-  // The last two pages are the back cover and the spine, so a new page goes
-  // before them. The style scenes carry each page's scopes, and a page the
-  // reader adds carries none, so this sets them.
-  const addPage = cesdk.actions.get('page.add')!;
-  cesdk.actions.register('page.add', async (options) => {
-    const page = await addPage({
-      index: options?.index ?? cesdk.engine.scene.getPages().length - 2
-    });
-    ADDED_PAGE_GRANTS.forEach((scope) => {
-      cesdk.engine.block.setScopeEnabled(page, scope, true);
-    });
-    ADDED_PAGE_DENIALS.forEach((scope) => {
-      cesdk.engine.block.setScopeEnabled(page, scope, false);
-    });
-    return page;
+  // The reader adds pages a spread at a time, always at the end of the book,
+  // where the back cover closes it. The new spread and its pages take the
+  // permissions the style scene gives the book's own, and Undo removes the
+  // whole spread.
+  cesdk.actions.register('page.add', () => {
+    const { engine } = cesdk;
+    return addBookSpread(engine, () =>
+      cesdk.actions.run('page.addSpread', {
+        index: engine.scene.getPages().length
+      })
+    );
   });
   // #endregion
 

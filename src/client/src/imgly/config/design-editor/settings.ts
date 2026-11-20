@@ -21,6 +21,20 @@ import type { CreativeEngine } from '@cesdk/cesdk-js';
  */
 export function setupSettings(engine: CreativeEngine): void {
   // ============================================================================
+  // ROLE
+  // The reader fills a book rather than authoring one
+  // ============================================================================
+
+  // #region Role
+  // As an Adopter, the permissions the style scene gives each block decide
+  // what the reader may do: page structure and layouts stay fixed, slots stay
+  // editable. The role allows adding to every block, so that is handed to
+  // each block too, and the jacket's pages keep their order.
+  engine.editor.setRole('Adopter');
+  engine.editor.setGlobalScope('editor/add', 'Defer');
+  // #endregion
+
+  // ============================================================================
   // CONTROL GIZMO SETTINGS
   // Configure the visual handles that appear when blocks are selected
   // ============================================================================
@@ -95,6 +109,15 @@ export function setupSettings(engine: CreativeEngine): void {
   // Dim areas outside of page boundaries for visual clarity
   engine.editor.setSetting('page/dimOutOfPageAreas', true);
 
+  // Dashed line on the fold between the facing pages of a spread. The
+  // preview hides it, so the editor sets it again when the reader returns.
+  engine.editor.setSetting('page/pageSliceGuideColor', {
+    r: 0.13,
+    g: 0.45,
+    b: 0.85,
+    a: 0.9
+  });
+
   // Restrict resize to fixed aspect ratio
   // engine.editor.setSetting('page/restrictResizeInteractionToFixedAspectRatio', false);
 
@@ -116,6 +139,9 @@ export function setupSettings(engine: CreativeEngine): void {
 
   // Show title even when only one page exists
   engine.editor.setSetting('page/title/showOnSinglePage', true);
+
+  // Title each page of a spread on its own; a selected spread shows its spread title
+  engine.editor.setSetting('page/title/showOnPageSlices', true);
 
   // Include the template title in page titles
   engine.editor.setSetting('page/title/showPageTitleTemplate', true);
@@ -219,19 +245,6 @@ export function setupSettings(engine: CreativeEngine): void {
   // #endregion
 
   // ============================================================================
-  // DOCK SETTINGS
-  // Configure the asset dock appearance
-  // ============================================================================
-
-  // #region Dock Settings
-  // Hide text labels on dock icons (icon-only mode)
-  // engine.editor.setSetting('dock/hideLabels', false);
-
-  // Dock icon size: 'normal' or 'large'
-  // engine.editor.setSetting('dock/iconSize', 'large');
-  // #endregion
-
-  // ============================================================================
   // FEATURE FLAGS
   // Enable/disable specific engine capabilities
   // ============================================================================
@@ -254,19 +267,6 @@ export function setupSettings(engine: CreativeEngine): void {
   // Uncomment to enable background grid and snap-to-grid for precise alignment
   // engine.editor.setSettingBool('grid/enabled', true);
   // engine.editor.setSettingBool('grid/snapEnabled', true);
-  // #endregion
-
-  // ============================================================================
-  // COLOR PICKER SETTINGS
-  // Configure color picker behavior
-  // ============================================================================
-
-  // #region Color Picker Settings
-  // Restrict color picker to a specific color mode:
-  // - 'Any': Allow both RGB and CMYK (default)
-  // - 'RGB': Restrict to RGB colors only
-  // - 'CMYK': Restrict to CMYK colors only
-  engine.editor.setSetting('colorPicker/colorMode', 'Any');
   // #endregion
 
   // ============================================================================

@@ -210,16 +210,22 @@ export default function App({ config }: AppProps) {
     [insertNavigationButtons]
   );
 
-  // The preview is a mode of the editor itself: entering switches the scene
-  // into page spreads and swaps the chrome; leaving restores everything.
+  // The preview is an editor configuration of its own: entering switches the
+  // editor to it, leaving switches back to the design editor, which then
+  // needs the app's buttons again.
   useEffect(() => {
     if (screen !== 'preview' || cesdk == null) return;
-    const exitPreview = enterPreviewMode(cesdk, {
+    const entered = enterPreviewMode(cesdk, {
       onBack: () => setScreen('editor'),
       onExport: (signal) => exportPhotobook(cesdk, signal)
     });
-    return () => exitPreview();
-  }, [screen, cesdk]);
+    return () => {
+      void entered
+        .then((exitPreview) => exitPreview())
+        .then(() => insertNavigationButtons(cesdk))
+        .catch((error) => console.error('Leaving the preview failed:', error));
+    };
+  }, [screen, cesdk, insertNavigationButtons]);
 
   return (
     <>

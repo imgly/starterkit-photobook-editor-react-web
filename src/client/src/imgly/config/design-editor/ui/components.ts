@@ -36,7 +36,7 @@
 
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
-import { PAGE_TYPE } from '../../constants';
+import { PAGE_TYPE } from '../../../constants';
 
 /**
  * Register and configure custom UI components.
@@ -101,8 +101,8 @@ export function setupComponents(cesdk: CreativeEditorSDK): void {
 
   cesdk.ui.registerComponent('photobook.page.add.canvasBar', ({ builder }) => {
     builder.Button('photobook-page-add', {
-      label: 'action.page.add',
-      icon: '@imgly/FilePlus',
+      label: 'component.layerList.addPage.page',
+      icon: '@imgly/MultipageFile',
       variant: 'regular',
       onClick: () => cesdk.actions.run('page.add')
     });

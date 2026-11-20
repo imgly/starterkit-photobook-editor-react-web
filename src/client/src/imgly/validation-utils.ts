@@ -6,7 +6,7 @@
 import type CreativeEditorSDK from '@cesdk/cesdk-js';
 
 import type { BoundingBox } from './validation-types';
-import { getParentPage } from './block-utils';
+import { frameOf, getPageLocalBoundingBox, getParentPage } from './block-utils';
 import {
   getPhotoURI,
   isPhotoBlock,
@@ -14,6 +14,7 @@ import {
   getPhotoFill
 } from './placeholders';
 import { fetchImageResolution } from './photos';
+import { getBookPageBlocks, getBookPages } from './spreads';
 
 type CreativeEngine = CreativeEditorSDK['engine'];
 
@@ -42,47 +43,6 @@ function getElementBoundingBox(
 }
 
 /**
- * A block's box relative to its page's top-left corner. Global boxes can
- * lag a relayout by more than a page height in a stacked scene, which would
- * read as a block sitting entirely off its page.
- */
-function getPageLocalBoundingBox(
-  engine: CreativeEngine,
-  blockId: number,
-  page: number
-): BoundingBox | null {
-  let x = 0;
-  let y = 0;
-  let node: number | null = blockId;
-  while (node != null && node !== page) {
-    x += engine.block.getPositionX(node);
-    y += engine.block.getPositionY(node);
-    node = engine.block.getParent(node);
-  }
-  const frame = frameOf(engine, blockId);
-  if (frame == null) return null;
-  const { width, height } = frame;
-  // A rotated block covers a different area than its frame.
-  const rotation = engine.block.getRotation(blockId);
-  if (rotation === 0) return [x, y, x + width, y + height];
-
-  // The block turns about its position, not its centre, so rotate the frame's
-  // corners about that point and take their extent.
-  const cos = Math.cos(rotation);
-  const sin = Math.sin(rotation);
-  const cornerX = [0, width, width, 0];
-  const cornerY = [0, 0, height, height];
-  const rotatedX = cornerX.map((cx, index) => cx * cos - cornerY[index] * sin);
-  const rotatedY = cornerX.map((cx, index) => cx * sin + cornerY[index] * cos);
-  return [
-    x + Math.min(...rotatedX),
-    y + Math.min(...rotatedY),
-    x + Math.max(...rotatedX),
-    y + Math.max(...rotatedY)
-  ];
-}
-
-/**
  * How much of a block may sit outside its page before it counts as
  * protruding. A full-bleed photo is deliberately larger than the page, and
  * effects grow the measured box further, so the check only reports a block
@@ -102,23 +62,6 @@ function getRelevantBlocks(engine: CreativeEngine): number[] {
     ...engine.block.findByType('text'),
     ...engine.block.findByType('graphic')
   ];
-}
-
-/**
- * The block's frame, or null when the engine has not laid it out yet.
- */
-function frameOf(
-  engine: CreativeEngine,
-  blockId: number
-): { width: number; height: number } | null {
-  try {
-    return {
-      width: engine.block.getFrameWidth(blockId),
-      height: engine.block.getFrameHeight(blockId)
-    };
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -248,11 +191,14 @@ export function getDuplicateImageBlocks(engine: CreativeEngine): number[] {
     .map(([blockId]) => blockId);
 }
 
-/** Returns pages without any child blocks. */
+/**
+ * Returns the pages of the book that hold no block: a page slice of a
+ * spread, or a page without page slices.
+ */
 export function getEmptyPages(engine: CreativeEngine): number[] {
-  return engine.scene
-    .getPages()
-    .filter((page) => engine.block.getChildren(page).length === 0);
+  return getBookPages(engine)
+    .filter((bookPage) => getBookPageBlocks(engine, bookPage).length === 0)
+    .map((bookPage) => bookPage.pageSlice ?? bookPage.page);
 }
 
 /** Returns image slots that hold no photo yet. */
